@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chatgpt-collector"
+version = "0.1.0"
+description = "Local-first ChatGPT web history capture via Playwright — for personal memory hubs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Michael Driscoll" },
+]
+keywords = [
+  "chatgpt",
+  "playwright",
+  "local-first",
+  "ai-memory",
+  "telemetry",
+  "conversation-export",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+
+[project.optional-dependencies]
+stealth = [
+  "playwright>=1.49.0",
+]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+chatgpt-collector = "chatgpt_collector.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/michaeldriscoll/chatgpt-collector"
+Repository = "https://github.com/michaeldriscoll/chatgpt-collector"
+Documentation = "https://github.com/michaeldriscoll/chatgpt-collector#readme"
+Issues = "https://github.com/michaeldriscoll/chatgpt-collector/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["chatgpt_collector*"]
