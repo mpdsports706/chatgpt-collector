@@ -45,10 +45,12 @@ def _add_browser_flags(parser: argparse.ArgumentParser) -> None:
 
 
 def _print_collect_stats(label: str, stats) -> int:
-    stale = getattr(stats, "stale_skipped", 0)
+    deferred = getattr(stats, "deferred_412", 0)
+    permanent = getattr(stats, "deferred_412_permanent", 0)
     print(
         f"{label}: listed={stats.listed} fetched={stats.fetched} "
-        f"stored={stats.stored} skipped={stats.skipped} stale_skipped={stale} errors={stats.errors}"
+        f"stored={stats.stored} skipped={stats.skipped} "
+        f"deferred_412={deferred} deferred_permanent={permanent} errors={stats.errors}"
     )
     if stats.error_reasons:
         print("error breakdown:")
@@ -101,8 +103,20 @@ def cmd_backfill(args: argparse.Namespace) -> int:
         mode = "headed (storage_state)"
     print(f"collect mode: {mode}")
 
+    if getattr(args, "force_retry_412", False):
+        cleared = store.reset_deferred_412(include_permanent=True)
+        print(f"cleared {cleared} deferred 412 entries (including permanent)")
+    elif getattr(args, "retry_412", False):
+        cleared = store.reset_deferred_412(include_permanent=False)
+        print(f"cleared {cleared} retryable deferred 412 entries")
+
     async def run(client, browser):
-        stats = await backfill(store, client, max_conversations=args.max)
+        stats = await backfill(
+            store,
+            client,
+            max_conversations=args.max,
+            retry_412=getattr(args, "retry_412", False) or getattr(args, "force_retry_412", False),
+        )
         if stats.fetched > 0:
             path = await refresh_storage_state(browser.context)
             print(f"refreshed storage_state: {path}")
@@ -131,8 +145,14 @@ def cmd_watch(args: argparse.Namespace) -> int:
         mode = "headed (storage_state)"
     print(f"collect mode: {mode}")
 
+    retry = getattr(args, "retry_412", False) or getattr(args, "force_retry_412", False)
+    if getattr(args, "force_retry_412", False):
+        store.reset_deferred_412(include_permanent=True)
+    elif getattr(args, "retry_412", False):
+        store.reset_deferred_412(include_permanent=False)
+
     async def run(client, browser):
-        stats = await watch(store, client, lookback=args.lookback)
+        stats = await watch(store, client, lookback=args.lookback, retry_412=retry)
         if stats.fetched > 0:
             path = await refresh_storage_state(browser.context)
             print(f"refreshed storage_state: {path}")
@@ -169,10 +189,25 @@ def cmd_sync(args: argparse.Namespace) -> int:
 def cmd_status(_: argparse.Namespace) -> int:
     store = _store()
     state = storage_state_path()
+    recon = store.reconciliation_summary()
     print(f"version: {__version__}")
     print(f"collect default: {'headless' if collection_headless() else 'headed'}")
     print(f"auth state: {state} ({'ok' if state.is_file() else 'missing'})")
-    print(f"staging db: {staging_db_path()} ({store.count()} conversations, {store.skipped_count()} skipped-stale)")
+    print(f"staging db: {staging_db_path()}")
+    print(f"staged: {recon.staged}")
+    if recon.list_total is not None:
+        when = recon.list_total_at or "unknown"
+        print(f"list_total: {recon.list_total} (as of {when})")
+        print(
+            f"deferred_412: {recon.deferred_total} "
+            f"({recon.deferred_permanent} permanent, {recon.deferred_retryable} retryable)"
+        )
+        print(f"missing_estimate: {recon.missing_estimate}")
+        print(f"backfill_complete: {'yes' if recon.is_complete else 'no'}")
+    else:
+        total, retryable, permanent = store.deferred_stats()
+        print(f"deferred_412: {total} ({permanent} permanent, {retryable} retryable)")
+        print("list_total: unknown (run backfill once)")
     pending = len(store.list_conversations(changed_only=True))
     print(f"pending export: {pending}")
     print(f"hub export dir: {hub_export_dir()}")
@@ -199,10 +234,26 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_backfill = sub.add_parser("backfill", help="Fetch all conversations from ChatGPT web")
     p_backfill.add_argument("--max", type=int, default=None, help="Stop after N conversations")
+    p_backfill.add_argument(
+        "--retry-412",
+        action="store_true",
+        help="Clear retryable 412 deferrals before backfill",
+    )
+    p_backfill.add_argument(
+        "--force-retry-412",
+        action="store_true",
+        help="Clear all 412 deferrals (including permanent) before backfill",
+    )
     _add_browser_flags(p_backfill)
 
     p_watch = sub.add_parser("watch", help="Incremental fetch of recent conversations")
     p_watch.add_argument("--lookback", type=int, default=50, help="Max recent threads to scan")
+    p_watch.add_argument("--retry-412", action="store_true", help="Clear retryable 412 deferrals")
+    p_watch.add_argument(
+        "--force-retry-412",
+        action="store_true",
+        help="Clear all 412 deferrals before watch",
+    )
     _add_browser_flags(p_watch)
 
     sub.add_parser("export", help="Write changed staging rows to hub JSON files")

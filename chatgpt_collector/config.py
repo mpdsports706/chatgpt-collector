@@ -50,6 +50,9 @@ DEFAULT_PAGE_SIZE = int(os.environ.get("CHATGPT_COLLECTOR_PAGE_SIZE", "28"))
 REQUEST_DELAY_SEC = float(os.environ.get("CHATGPT_COLLECTOR_DELAY_SEC", "1.25"))
 RATE_LIMIT_MAX_RETRIES = int(os.environ.get("CHATGPT_COLLECTOR_RATE_RETRIES", "6"))
 LOGIN_TIMEOUT_MINUTES = int(os.environ.get("CHATGPT_LOGIN_TIMEOUT_MINUTES", "30"))
+DEFER_412_MAX_ATTEMPTS = int(os.environ.get("CHATGPT_COLLECTOR_412_MAX_ATTEMPTS", "3"))
+DEFER_412_MIN_DAYS = int(os.environ.get("CHATGPT_COLLECTOR_412_MIN_DAYS", "7"))
+DEFER_412_HARD_CAP = int(os.environ.get("CHATGPT_COLLECTOR_412_HARD_CAP", "5"))
 
 
 def collection_headless() -> bool:

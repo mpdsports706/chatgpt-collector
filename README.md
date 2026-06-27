@@ -55,6 +55,15 @@ flowchart LR
 
 ---
 
+## Operational model
+
+This is **interactive ingest**, not unattended cron:
+
+- **Login + backfill/watch** need a headed browser session (Bearer capture).
+- Run when you sit down at the machine — not as a headless launchd job.
+- `watch` re-fetches recent threads and stops on unchanged content (good for end-of-session sync).
+
+
 ## Quick start
 
 ### Requirements
@@ -135,9 +144,9 @@ See [CHATGPT_WEB_COLLECTOR.md](https://github.com/michaeldriscoll/ai-telemetry-h
 | `watch` | Recent threads only |
 | `export` | Write changed rows to `hub/*.chatgpt_web.json` |
 | `sync` | Export + POST to hub API (optional) |
-| `status` | Paths, counts, pending export |
+| `status` | Reconciliation: list_total, staged, deferred_412, missing_estimate, complete |
 
-**Flags:** `--headed` (default), `--headless` (after headed works), `--profile` (reuse login profile — can crash on macOS), `--max N`, `--timeout-minutes` (login).
+**Flags:** `--headed` (default), `--headless`, `--profile`, `--max N`, `--retry-412`, `--force-retry-412`, `--timeout-minutes` (login).
 
 ---
 
@@ -151,6 +160,10 @@ See [CHATGPT_WEB_COLLECTOR.md](https://github.com/michaeldriscoll/ai-telemetry-h
 | `CHATGPT_COLLECTOR_HEADLESS` | `false` | Default collection mode |
 | `CHATGPT_COLLECTOR_USE_PROFILE` | `false` | Reopen login Chrome profile for collect |
 | `CHATGPT_LOGIN_TIMEOUT_MINUTES` | `30` | Login wait |
+| `CHATGPT_COLLECTOR_412_MAX_ATTEMPTS` | `3` | Attempts before permanent deferral window applies |
+| `CHATGPT_COLLECTOR_412_MIN_DAYS` | `7` | Days between first and last 412 before permanent |
+| `CHATGPT_COLLECTOR_412_HARD_CAP` | `5` | Permanent deferral regardless of span |
+
 | `AI_TELEMETRY_API` | `http://localhost:8000` | For `sync` command |
 
 ---
@@ -160,8 +173,8 @@ See [CHATGPT_WEB_COLLECTOR.md](https://github.com/michaeldriscoll/ai-telemetry-h
 | Issue | Behavior |
 |-------|----------|
 | **429 Too Many Requests** | Retry with backoff; increase `DELAY_SEC`; re-run backfill (skips stored) |
-| **412 stale conversation** | Thread not API-fetchable; skipped permanently after open-in-browser + reload retry |
-| **Partial backfill** | First pass may get ~25–40% before rate limits; re-runs fill gaps |
+| **412 stale conversation** | Deferred with retry count; permanent only after 3+ attempts over 7+ days (or 5 hard cap); `--retry-412` to force |
+| **Partial backfill** | First pass may get ~25–40% before rate limits; `status` shows `list_total` vs staged + `missing_estimate` |
 | **API drift** | OpenAI may change `backend-api`; collector may need updates |
 | **Terms of use** | Personal, read-your-own-data tooling — not a scraping service |
 

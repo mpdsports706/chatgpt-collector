@@ -48,6 +48,7 @@ class ChatGPTClient:
         self._api_base: str | None = None
         self._auth_headers: dict[str, str] = {}
         self._warmed = False
+        self.last_list_total: int = 0
 
     async def ensure_warmed_up(self) -> None:
         """Load ChatGPT UI and capture Bearer token from the app's own API calls."""
@@ -208,6 +209,9 @@ class ChatGPTClient:
         offset = 0
         while True:
             payload = await self.list_conversations(offset=offset, limit=page_size)
+            total = int(payload.get("total") or 0)
+            if total:
+                self.last_list_total = total
             items = payload.get("items") or payload.get("conversations") or []
             if not isinstance(items, list):
                 break
