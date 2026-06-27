@@ -67,7 +67,7 @@ flowchart LR
 Homebrew Python blocks global `pip install` — **always use a venv**.
 
 ```bash
-git clone https://github.com/michaeldriscoll/chatgpt-collector.git
+git clone https://github.com/mpdsports706/chatgpt-collector.git
 cd chatgpt-collector
 python3 -m venv .venv
 source .venv/bin/activate

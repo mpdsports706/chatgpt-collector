@@ -46,10 +46,10 @@ dev = [
 chatgpt-collector = "chatgpt_collector.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/michaeldriscoll/chatgpt-collector"
-Repository = "https://github.com/michaeldriscoll/chatgpt-collector"
-Documentation = "https://github.com/michaeldriscoll/chatgpt-collector#readme"
-Issues = "https://github.com/michaeldriscoll/chatgpt-collector/issues"
+Homepage = "https://github.com/mpdsports706/chatgpt-collector"
+Repository = "https://github.com/mpdsports706/chatgpt-collector"
+Documentation = "https://github.com/mpdsports706/chatgpt-collector#readme"
+Issues = "https://github.com/mpdsports706/chatgpt-collector/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
